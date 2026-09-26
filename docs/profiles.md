@@ -65,7 +65,7 @@ An unknown profile name (`profile: legasy`) fails the job with `Pure: unknown pr
 
 ## Customising a profile for one project
 
-Don't copy the profile's rules into your project. Extend the profile, so you still get company-wide changes:
+Don't copy the profile's rules into your project. Extend the profile, so you still get later changes to Pure's rules:
 
 ```xml
 <!-- phpcs.xml at the project root -->
@@ -88,7 +88,7 @@ Don't copy the profile's rules into your project. Extend the profile, so you sti
 
 ## Adding a profile (Pure maintainers)
 
-1. Create `config/<name>/phpcs.xml`. Start it with `<rule ref="../phpcs.xml">` so it inherits the company standard.
+1. Create `config/<name>/phpcs.xml`. Start it with `<rule ref="../phpcs.xml">` so it inherits the default standard.
 2. Add `<name>` to the `options` list of the `profile` input in `gitlab/pure.yml`.
 3. Add a row to the tables in this file and in the README.
 4. Add a case to `tests/run.sh`.
