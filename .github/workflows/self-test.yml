@@ -1,0 +1,13 @@
+name: Self-test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          docker build -q --build-arg PHP_VERSION=7.4 -t pure:7.4 .
+          docker build -q --build-arg PHP_VERSION=8.5 -t pure:8.5 .
+      - run: tests/run.sh pure

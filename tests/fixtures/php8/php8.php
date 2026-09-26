@@ -1,0 +1,6 @@
+<?php
+
+echo match (1) {
+    1 => 'one',
+    default => 'other',
+};

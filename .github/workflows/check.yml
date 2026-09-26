@@ -1,0 +1,37 @@
+# Reusable workflow: projects call this to run the Pure checks on their pull requests.
+name: Pure
+
+on:
+  workflow_call:
+    inputs:
+      php_version:
+        description: PHP version the project runs on (picks the image, so it decides what the syntax check accepts)
+        type: string
+        default: "8.5"
+      phpstan_level:
+        description: PHPStan level, used only when the project has no phpstan.neon
+        type: string
+        default: "1"
+      test_version:
+        description: PHPCompatibility testVersion, e.g. "7.4-8.5" (default "<php_version>-")
+        type: string
+        default: ""
+      image:
+        description: Pure image, without the tag
+        type: string
+        default: ghcr.io/rockberpro/pure
+
+jobs:
+  pure:
+    runs-on: ubuntu-latest
+    container: ${{ inputs.image }}:${{ inputs.php_version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - run: pure
+        env:
+          PURE_FORMAT: github
+          PURE_BASE: ${{ github.base_ref && format('origin/{0}', github.base_ref) || '' }}
+          PHPSTAN_LEVEL: ${{ inputs.phpstan_level }}
+          PURE_TEST_VERSION: ${{ inputs.test_version }}

@@ -1,0 +1,25 @@
+name: Build images
+
+on:
+  push:
+    branches: [main]
+    paths: [Dockerfile, bin/**, config/**, .github/workflows/image.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/pure:${{ matrix.php }}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build --build-arg PHP_VERSION=${{ matrix.php }} -t "$image" .
+          docker push "$image"

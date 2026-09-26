@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Pure: runs the company PHP checks and prints a summary report.
+#   PURE_BASE          git ref to diff against (the PR base); unset = all tracked PHP files
+#   PURE_FORMAT        text (default) | github
+#   PHPSTAN_LEVEL      used only when the project has no phpstan.neon (default 1)
+#   PURE_TEST_VERSION  PHPCompatibility testVersion (default "<this PHP>-", e.g. "7.4-")
+set -uo pipefail
+
+format=${PURE_FORMAT:-text}
+php_version=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+git config --global --add safe.directory "$PWD"
+
+# A git failure must not look like "nothing to check" and pass the build.
+if [ -n "${PURE_BASE:-}" ]; then
+  list=$(git diff --name-only --diff-filter=ACMR "$PURE_BASE"...HEAD -- '*.php' ':!vendor/') ||
+    { echo "Pure: cannot diff against $PURE_BASE (checkout with fetch-depth: 0?)" >&2; exit 2; }
+else
+  list=$(git ls-files -- '*.php' ':!vendor/') || { echo "Pure: not a git repository" >&2; exit 2; }
+fi
+if [ -z "$list" ]; then
+  echo "Pure: no PHP files to check."
+  exit 0
+fi
+mapfile -t files <<<"$list"
+
+has_any() { for f; do [ -f "$f" ] && return 0; done; return 1; }
+
+if [ -f composer.json ] && [ ! -d vendor ]; then
+  composer install --no-scripts --no-progress --no-interaction --ignore-platform-reqs ||
+    echo "Pure: composer install failed, PHPStan may report unknown classes" >&2
+fi
+
+lint() {
+  if [ "$format" = github ]; then parallel-lint --checkstyle "${files[@]}" | cs2pr
+  else parallel-lint "${files[@]}"; fi
+}
+
+analyse() {
+  local args=(analyse --no-progress --memory-limit=1G)
+  [ "$format" = github ] && args+=(--error-format=github)
+  has_any phpstan.neon phpstan.neon.dist phpstan.dist.neon ||
+    args+=(-c /opt/pure/config/phpstan.neon --level="${PHPSTAN_LEVEL:-1}")
+  phpstan "${args[@]}" "${files[@]}"
+}
+
+sniff() {
+  if [ "$format" = github ]; then phpcs -q --report=checkstyle "$@" "${files[@]}" | cs2pr
+  else phpcs -q "$@" "${files[@]}"; fi
+}
+
+style() {
+  local args=()
+  has_any phpcs.xml phpcs.xml.dist .phpcs.xml .phpcs.xml.dist || args+=(--standard=/opt/pure/config/phpcs.xml)
+  sniff "${args[@]}"
+}
+
+compat() { sniff --standard=PHPCompatibility --runtime-set testVersion "${PURE_TEST_VERSION:-$php_version-}"; }
+
+mess() {
+  local renderer=text
+  [ "$format" = github ] && renderer=github
+  phpmd "$(IFS=,; echo "${files[*]}")" "$renderer" codesize,unusedcode
+}
+
+audit() { composer audit --no-interaction; }
+
+rows=()
+failed=0
+# check <name> <gate|warn> <function>: runs every check, even after a failure.
+check() {
+  [ "$format" = github ] && echo "::group::$1" || echo "== $1"
+  if "$3"; then rows+=("| $1 | ✅ passed |")
+  elif [ "$2" = gate ]; then rows+=("| $1 | ❌ failed |"); failed=1
+  else rows+=("| $1 | ⚠️ warnings |"); fi
+  [ "$format" = github ] && echo "::endgroup::"
+}
+
+check "Syntax (PHP $php_version)" gate lint
+check "Static analysis (PHPStan)" gate analyse
+[ -f composer.lock ] && check "Dependency security (composer audit)" gate audit
+check "Coding standard (PHPCS)" warn style
+check "PHP compatibility (${PURE_TEST_VERSION:-$php_version-})" warn compat
+check "Complexity & unused code (PHPMD)" warn mess
+
+report="## Pure report
+
+${#files[@]} PHP files checked with PHP $php_version.
+
+| Check | Result |
+|---|---|
+$(printf '%s\n' "${rows[@]}")"
+[[ "$report" == *"PHPCS) | ⚠️"* ]] && report+=$'\n\nMost coding standard issues can be fixed automatically with `phpcbf`.'
+
+echo
+echo "$report"
+[ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "$report" >>"$GITHUB_STEP_SUMMARY"
+exit "$failed"

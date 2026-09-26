@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<ruleset name="Pure">
+    <description>Company PHP coding standard. Change it here and every project follows.</description>
+    <rule ref="PSR12"/>
+</ruleset>

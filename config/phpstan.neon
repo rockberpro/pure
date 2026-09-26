@@ -1,0 +1,5 @@
+# Default when a project has no phpstan.neon. Scanning the repo lets PHPStan
+# find classes in files that weren't changed, even without Composer autoload.
+parameters:
+    scanDirectories:
+        - %currentWorkingDirectory%
