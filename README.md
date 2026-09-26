@@ -1,6 +1,6 @@
 # Pure
 
-A shared PHP code-quality standard for pull requests.
+**Pu**ll + **Re**quest: a shared PHP code-quality standard for pull requests.
 One Docker image per PHP version, containing every tool and the default config. Every project uses the same checks.
 
 | Check | Tool | Fails the PR? |
