@@ -16,6 +16,10 @@ On pull requests only the changed PHP files are checked. Problems appear as anno
 
 ## Add it to a project
 
+Add one file to the project. Both platforms take the same inputs (see [Options](#options)).
+
+### GitHub
+
 `.github/workflows/quality.yml`:
 
 ```yaml
@@ -27,11 +31,35 @@ jobs:
       php_version: "7.4"
 ```
 
-Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`), `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`) and `profile`.
+Findings appear as annotations on the pull request diff, and the summary table appears on the run page. To block merges, make the `pure / pure` check required in the branch protection rules.
+
+### GitLab
+
+`.gitlab-ci.yml`:
+
+```yaml
+include:
+  - remote: https://raw.githubusercontent.com/rockberpro/pure/v1/gitlab/pure.yml
+    inputs:
+      php_version: "7.4"
+```
+
+This adds a `pure` job to merge request pipelines. Findings go to the Code Quality report on the merge request, and the job log shows the summary table. To block merges, turn on "Pipelines must succeed" in the project's merge request settings.
+
+## Options
+
+| Input | Default | What it does |
+|---|---|---|
+| `php_version` | `"8.5"` | The PHP the app runs on today. Picks the image, so the syntax check runs on that exact version |
+| `profile` | `default` | Coding-standard rules: `default` or `legacy` |
+| `test_version` | `"<php_version>-"` | PHP versions to warn about, e.g. `"7.4-8.5"` while planning an upgrade |
+| `phpstan_level` | `"1"` | PHPStan level, ignored if the project has a `phpstan.neon` |
+| `stage` | `test` | GitLab only: the stage the job runs in. It must exist in the project's `stages` |
+| `image` | `ghcr.io/rockberpro/pure` | The image without its tag, for forks that publish their own |
 
 ### PHP versions
 
-`php_version` is the PHP the app runs on today: it picks the image, and the syntax check runs on that exact interpreter. `test_version` is the range you want **warnings** for, e.g. `"7.4-8.5"` while planning an upgrade. Available: `7.4`, `8.0` to `8.5` (default `8.5`). Always quote them.
+Available: `7.4`, `8.0` to `8.5`. Always quote them, because YAML reads an unquoted `8.0` as `8`. `php_version` decides what the syntax check accepts. `test_version` only adds warnings, and it never blocks a merge.
 
 **Read [docs/php-versions.md](docs/php-versions.md)** for what each check does with the version, how to plan an upgrade, and how to add a new PHP version.
 
@@ -46,33 +74,27 @@ A profile picks the coding-standard rules. It only changes PHPCS **warnings**, n
 
 A `phpcs.xml` at the project root overrides the profile. **Read [docs/profiles.md](docs/profiles.md)** for what each profile turns off, how to choose, how to customise and how to move from `legacy` to `default`.
 
-Example for a legacy app (GitHub; on GitLab, put the same keys under `inputs:`):
+### Example: a legacy PHP 7.4 app
+
+GitHub:
 
 ```yaml
-on: pull_request
-jobs:
-  pure:
-    uses: rockberpro/pure/.github/workflows/check.yml@v1
     with:
       php_version: "7.4"
       profile: legacy
       test_version: "7.4-8.5"   # also warn about code that breaks on PHP 8
 ```
 
-Then add a PHPStan baseline (see "Legacy code: start with a baseline" below) so only new errors fail.
-
-### GitLab
-
-`.gitlab-ci.yml`:
+GitLab:
 
 ```yaml
-include:
-  - remote: https://raw.githubusercontent.com/rockberpro/pure/v1/gitlab/pure.yml
     inputs:
       php_version: "7.4"
+      profile: legacy
+      test_version: "7.4-8.5"
 ```
 
-This adds a `pure` job to merge request pipelines, in the `test` stage by default. If the project has custom stages, set the `stage` input. Findings go to GitLab Code Quality through the `codequality` artifact, and the log shows the same summary table. The other inputs match the GitHub workflow.
+Then add a PHPStan baseline (see [Legacy code](#legacy-code-start-with-a-baseline)) so only new errors fail.
 
 ## Run it locally (same result as CI)
 
