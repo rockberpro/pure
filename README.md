@@ -31,12 +31,14 @@ Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan
 
 ### Profiles
 
-| Profile | For | Coding standard |
-|---|---|---|
-| `default` | new code | `config/phpcs.xml`, PSR-12 |
-| `legacy` | PHP 5 era code, ported forward | `config/legacy/phpcs.xml`, PSR-12 without the namespace, camelCase method and side-effect rules |
+A profile picks the coding-standard rules. It only changes PHPCS **warnings**, never what blocks a merge.
 
-A project's own `phpcs.xml` takes priority over either profile.
+| Profile | Use it for |
+|---|---|
+| `default` | New code, or code with namespaces |
+| `legacy` | Old code without namespaces: `snake_case` methods, files that declare and run code |
+
+A `phpcs.xml` at the project root overrides the profile. **Read [docs/profiles.md](docs/profiles.md)** for what each profile turns off, how to choose, how to customise and how to move from `legacy` to `default`.
 
 Example for a legacy app (GitHub; on GitLab, put the same keys under `inputs:`):
 
