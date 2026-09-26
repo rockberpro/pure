@@ -27,7 +27,31 @@ jobs:
       php_version: "7.4"
 ```
 
-Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`) and `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`).
+Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`), `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`) and `profile`.
+
+### Profiles
+
+| Profile | For | Coding standard |
+|---|---|---|
+| `default` | new code | `config/phpcs.xml`, PSR-12 |
+| `legacy` | PHP 5 era code, ported forward | `config/legacy/phpcs.xml`, PSR-12 without the namespace, camelCase method and side-effect rules |
+
+A project's own `phpcs.xml` takes priority over either profile.
+
+Example for a legacy app (GitHub; on GitLab, put the same keys under `inputs:`):
+
+```yaml
+on: pull_request
+jobs:
+  pure:
+    uses: rockberpro/pure/.github/workflows/check.yml@main
+    with:
+      php_version: "7.4"
+      profile: legacy
+      test_version: "7.4-8.5"   # also warn about code that breaks on PHP 8
+```
+
+Then add a PHPStan baseline (see "Legacy code: start with a baseline" below) so only new errors fail.
 
 ### GitLab
 

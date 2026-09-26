@@ -33,6 +33,9 @@ expect() {
 good=$(repo good); bad=$(repo bad); php8=$(repo php8)
 
 expect 0 "Static analysis (PHPStan) | ✅" "clean code passes"                   "$good" 7.4
+expect 0 "Coding standard (PHPCS) | ⚠️"   "default profile flags the missing namespace" "$good" 7.4
+expect 0 "Coding standard (PHPCS) | ✅"   "legacy profile accepts code without namespaces" "$good" 7.4 -e PURE_PROFILE=legacy
+expect 2 "unknown profile"                "an unknown profile fails instead of passing" "$good" 7.4 -e PURE_PROFILE=nope
 expect 1 "Syntax (PHP 7.4) | ❌"          "syntax error fails the build"        "$bad"  7.4
 expect 1 "Static analysis (PHPStan) | ❌" "undefined variable fails the build"  "$bad"  7.4
 expect 1 "::error"                        "github format emits annotations"     "$bad"  7.4 -e PURE_FORMAT=github
