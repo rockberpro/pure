@@ -22,7 +22,7 @@ On pull requests only the changed PHP files are checked. Problems appear as anno
 on: pull_request
 jobs:
   pure:
-    uses: rockberpro/pure/.github/workflows/check.yml@main
+    uses: rockberpro/pure/.github/workflows/check.yml@v1
     with:
       php_version: "7.4"
 ```
@@ -52,7 +52,7 @@ Example for a legacy app (GitHub; on GitLab, put the same keys under `inputs:`):
 on: pull_request
 jobs:
   pure:
-    uses: rockberpro/pure/.github/workflows/check.yml@main
+    uses: rockberpro/pure/.github/workflows/check.yml@v1
     with:
       php_version: "7.4"
       profile: legacy
@@ -67,7 +67,7 @@ Then add a PHPStan baseline (see "Legacy code: start with a baseline" below) so 
 
 ```yaml
 include:
-  - remote: https://raw.githubusercontent.com/rockberpro/pure/main/gitlab/pure.yml
+  - remote: https://raw.githubusercontent.com/rockberpro/pure/v1/gitlab/pure.yml
     inputs:
       php_version: "7.4"
 ```
@@ -77,8 +77,8 @@ This adds a `pure` job to merge request pipelines, in the `test` stage by defaul
 ## Run it locally (same result as CI)
 
 ```bash
-docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:7.4                                 # all files
-docker run --rm -v "$PWD:/app" -e PURE_BASE=origin/main ghcr.io/rockberpro/pure:7.4        # only your changes
+docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:1-7.4                                 # all files
+docker run --rm -v "$PWD:/app" -e PURE_BASE=origin/main ghcr.io/rockberpro/pure:1-7.4        # only your changes
 ```
 
 ## Legacy code: start with a baseline
@@ -86,7 +86,7 @@ docker run --rm -v "$PWD:/app" -e PURE_BASE=origin/main ghcr.io/rockberpro/pure:
 The first full run on an old app reports thousands of issues. Record them once so that only **new** errors fail:
 
 ```bash
-docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:7.4 \
+docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:1-7.4 \
   phpstan analyse --level=1 -c /opt/pure/config/phpstan.neon --generate-baseline --allow-empty-baseline .
 ```
 
@@ -101,8 +101,38 @@ parameters:
 
 Project config files (`phpstan.neon`, `phpcs.xml`) take priority over the defaults in `config/`.
 
+## Versioning
+
+Pure follows [SemVer](https://semver.org). Pin the major version: `@v1` on GitHub, `/v1/` in the GitLab URL. You get fixes and new features, never a change that can break your pipeline.
+
+| Release | What changes | Example |
+|---|---|---|
+| **Major** (`v2`) | Can break your pipeline: a warning becomes blocking, an input is removed or renamed, a tool's major version is bumped (new errors), or a PHP version is dropped | PHPStan 2 → 3 |
+| Minor (`v1.1.0`) | New things, all optional: an input, a profile, a PHP version, a warning-only check | the `legacy` profile |
+| Patch (`v1.0.1`) | Fixes and docs | a report bug |
+
+`v1` is a tag that moves to the newest `v1.x.y`. The templates use the images of the same major version (`:1-<php>`), so tools and rules only change with a v1 release. Pinning an exact tag (`@v1.0.0`) pins the templates, but they still use the `:1-<php>` images. `main` is the edge version and can change at any time, so don't point projects at it.
+
+## Limitations
+
+- **GitHub shows at most 10 error and 10 warning annotations per step**, and 50 per job. Anything beyond that is only in the job log and the summary table. Checking only changed files and using a PHPStan baseline keep most pull requests under the limit.
+- **On GitLab, what the Code Quality report shows depends on your tier.** The merge request widget works on all tiers. Findings inline on the diff need a paid tier.
+- **GitLab can't run two PHP versions in one pipeline yet.** Including the template twice creates two jobs named `pure`. Use `test_version` for upgrade warnings instead.
+- **PHPCompatibility can lag behind the newest PHP.** Its checks for a brand new PHP version arrive after the release.
+- **The pull request check covers only changed files.** An error that a change causes in a file it didn't touch (for example, removing a method that another file calls) isn't reported until that file changes. Running Pure without `PURE_BASE` checks every file (see "Run it locally").
+
 ## Maintaining Pure
 
-- `config/` holds the defaults. Changes reach every project on the next image build.
-- `.github/workflows/image.yml` pushes `ghcr.io/<owner>/pure:{7.4…8.5}` on changes to `main`. Make the package public, or give the projects that use it access.
+- `config/` holds the defaults. Changes reach `@v1` projects with the next release.
+- `.github/workflows/image.yml` builds the images. Pushes to `main` publish edge images (`:7.4`); release tags publish versioned ones (`:1.0.0-7.4`, `:1-7.4`). Make the package public, or give the projects that use it access.
 - `tests/run.sh` runs the images against `tests/fixtures`. It also runs on every push (`self-test.yml`).
+- **Releasing:** merge into `main`, then tag the release and move the major tag:
+
+  ```bash
+  git tag v1.2.0 && git push origin v1.2.0      # builds :1.2.0-<php> and :1-<php>
+  git tag -f v1 && git push -f origin v1        # @v1 users now get 1.2.0
+  ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

@@ -1,8 +1,11 @@
 name: Build images
 
+# main   → ghcr.io/<owner>/pure:<php>                    (edge, what main has now)
+# v1.2.3 → ghcr.io/<owner>/pure:1.2.3-<php> and :1-<php> (what @v1 templates use)
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"]
     paths: [Dockerfile, bin/**, config/**, .github/workflows/image.yml]
   workflow_dispatch:
 
@@ -19,7 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: |
-          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/pure:${{ matrix.php }}"
+          repo="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/pure"
+          php=${{ matrix.php }}
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            version=${GITHUB_REF_NAME#v}
+            tags=("$repo:$version-$php" "$repo:${version%%.*}-$php")
+          else
+            tags=("$repo:$php")
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker build --build-arg PHP_VERSION=${{ matrix.php }} -t "$image" .
-          docker push "$image"
+          docker build --build-arg PHP_VERSION="$php" "${tags[@]/#/--tag=}" .
+          for tag in "${tags[@]}"; do docker push "$tag"; done
