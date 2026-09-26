@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pure: runs the company PHP checks and prints a summary report.
+# Pure: runs the Pure PHP checks and prints a summary report.
 #   PURE_BASE          git ref to diff against (the PR base); unset = all tracked PHP files
 #   PURE_FORMAT        text (default) | github (annotations) | gitlab (text log + Code Quality files in pure-reports/)
 #   PHPSTAN_LEVEL      used only when the project has no phpstan.neon (default 1)

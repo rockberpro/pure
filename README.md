@@ -1,7 +1,7 @@
 # Pure
 
-The company PHP code-quality standard for pull requests.
-One Docker image per PHP version, containing every tool and the company config. Every project uses the same checks.
+A shared PHP code-quality standard for pull requests.
+One Docker image per PHP version, containing every tool and the default config. Every project uses the same checks.
 
 | Check | Tool | Fails the PR? |
 |---|---|---|
@@ -28,6 +28,12 @@ jobs:
 ```
 
 Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`), `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`) and `profile`.
+
+### PHP versions
+
+`php_version` is the PHP the app runs on today: it picks the image, and the syntax check runs on that exact interpreter. `test_version` is the range you want **warnings** for, e.g. `"7.4-8.5"` while planning an upgrade. Available: `7.4`, `8.0` to `8.5` (default `8.5`). Always quote them.
+
+**Read [docs/php-versions.md](docs/php-versions.md)** for what each check does with the version, how to plan an upgrade, and how to add a new PHP version.
 
 ### Profiles
 
@@ -93,10 +99,10 @@ parameters:
     level: 1
 ```
 
-Project config files (`phpstan.neon`, `phpcs.xml`) take priority over the company defaults in `config/`.
+Project config files (`phpstan.neon`, `phpcs.xml`) take priority over the defaults in `config/`.
 
 ## Maintaining Pure
 
-- `config/` holds the company defaults. Changes reach every project on the next image build.
-- `.github/workflows/image.yml` pushes `ghcr.io/<owner>/pure:{7.4…8.5}` on changes to `main`. Make the package public, or give company repos access to it.
+- `config/` holds the defaults. Changes reach every project on the next image build.
+- `.github/workflows/image.yml` pushes `ghcr.io/<owner>/pure:{7.4…8.5}` on changes to `main`. Make the package public, or give the projects that use it access.
 - `tests/run.sh` runs the images against `tests/fixtures`. It also runs on every push (`self-test.yml`).
