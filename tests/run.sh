@@ -19,7 +19,8 @@ repo() {
 expect() {
   local want=$1 text=$2 desc=$3 dir=$4 tag=$5; shift 5
   local out got
-  out=$(docker run --rm -v "$dir:/app" "$@" "$image:$tag" pure 2>&1); got=$?
+  # Same uid as the host so the files pure writes (pure-reports/) can be cleaned up.
+  out=$(docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$dir:/app" "$@" "$image:$tag" pure 2>&1); got=$?
   if [ "$got" = "$want" ] && [[ "$out" == *"$text"* ]]; then
     echo "ok   $desc"
   else
@@ -35,6 +36,11 @@ expect 0 "Static analysis (PHPStan) | ✅" "clean code passes"                  
 expect 1 "Syntax (PHP 7.4) | ❌"          "syntax error fails the build"        "$bad"  7.4
 expect 1 "Static analysis (PHPStan) | ❌" "undefined variable fails the build"  "$bad"  7.4
 expect 1 "::error"                        "github format emits annotations"     "$bad"  7.4 -e PURE_FORMAT=github
+expect 1 "== Syntax"                      "gitlab format keeps a readable log"  "$bad"  7.4 -e PURE_FORMAT=gitlab
+for report in syntax phpstan style; do
+  if grep -q '"fingerprint"' "$bad/pure-reports/$report.json" 2>/dev/null; then echo "ok   gitlab $report.json has Code Quality issues"
+  else echo "FAIL gitlab $report.json missing or empty"; fails=$((fails + 1)); fi
+done
 expect 1 "Syntax (PHP 7.4) | ❌"          "PHP 8 syntax fails on the 7.4 image" "$php8" 7.4
 expect 0 "Syntax (PHP 8.5) | ✅"          "PHP 8 syntax passes on the 8.5 image" "$php8" 8.5
 

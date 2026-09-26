@@ -29,6 +29,19 @@ jobs:
 
 Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`) and `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`).
 
+### GitLab
+
+`.gitlab-ci.yml`:
+
+```yaml
+include:
+  - remote: https://raw.githubusercontent.com/rockberpro/pure/main/gitlab/pure.yml
+    inputs:
+      php_version: "7.4"
+```
+
+This adds a `pure` job to merge request pipelines, in the `test` stage by default. If the project has custom stages, set the `stage` input. Findings go to GitLab Code Quality through the `codequality` artifact, and the log shows the same summary table. The other inputs match the GitHub workflow.
+
 ## Run it locally (same result as CI)
 
 ```bash
