@@ -47,13 +47,25 @@ lint() {
 }
 
 analyse() {
+  # PHPStan stops at the first parse error ("result is incomplete"), hiding every other
+  # error. The syntax check already reports broken files, so analyse only the rest.
+  local parsed
+  mapfile -t parsed < <(parallel-lint --json "${files[@]}" | php -r '
+    $bad = json_decode(stream_get_contents(STDIN), true)["results"]["filesWithSyntaxError"] ?? [];
+    foreach (array_slice($argv, 1) as $f) { if (!in_array($f, $bad, true)) { echo $f, "\n"; } }
+  ' -- "${files[@]}")
+  if [ ${#parsed[@]} -eq 0 ]; then
+    echo "No file parses, nothing for PHPStan to analyse."
+    return 0
+  fi
+
   local args=(analyse --no-progress --memory-limit=1G)
   [ "$format" = github ] && args+=(--error-format=github)
   has_any phpstan.neon phpstan.neon.dist phpstan.dist.neon ||
     args+=(-c /opt/pure/config/phpstan.neon --level="${PHPSTAN_LEVEL:-1}")
   # gitlab: the second run (for the log) is served from PHPStan's result cache.
-  [ "$format" = gitlab ] && phpstan "${args[@]}" --error-format=gitlab "${files[@]}" >"$reports/phpstan.json"
-  phpstan "${args[@]}" "${files[@]}"
+  [ "$format" = gitlab ] && phpstan "${args[@]}" --error-format=gitlab "${parsed[@]}" >"$reports/phpstan.json"
+  phpstan "${args[@]}" "${parsed[@]}"
 }
 
 # sniff <report name> <phpcs args...>

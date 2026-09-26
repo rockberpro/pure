@@ -37,7 +37,8 @@ expect 0 "Coding standard (PHPCS) | ⚠️"   "default profile flags the missing
 expect 0 "Coding standard (PHPCS) | ✅"   "legacy profile accepts code without namespaces" "$good" 7.4 -e PURE_PROFILE=legacy
 expect 2 "unknown profile"                "an unknown profile fails instead of passing" "$good" 7.4 -e PURE_PROFILE=nope
 expect 1 "Syntax (PHP 7.4) | ❌"          "syntax error fails the build"        "$bad"  7.4
-expect 1 "Static analysis (PHPStan) | ❌" "undefined variable fails the build"  "$bad"  7.4
+# The fixture also has a syntax error: PHPStan must still report the undefined variable.
+expect 1 'Undefined variable: $itemz'     "undefined variable is found next to a syntax error" "$bad" 7.4
 expect 1 "::error"                        "github format emits annotations"     "$bad"  7.4 -e PURE_FORMAT=github
 expect 1 "== Syntax"                      "gitlab format keeps a readable log"  "$bad"  7.4 -e PURE_FORMAT=gitlab
 for report in syntax phpstan style; do
