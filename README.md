@@ -27,7 +27,33 @@ jobs:
       php_version: "7.4"
 ```
 
-Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`) and `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`).
+Optional inputs: `phpstan_level` (default 1, ignored if the project has `phpstan.neon`), `test_version` (PHPCompatibility, e.g. `"7.4-8.5"`) and `profile`.
+
+### Profiles
+
+A profile picks the coding-standard rules. It only changes PHPCS **warnings**, never what blocks a merge.
+
+| Profile | Use it for |
+|---|---|
+| `default` | New code, or code with namespaces |
+| `legacy` | Old code without namespaces: `snake_case` methods, files that declare and run code |
+
+A `phpcs.xml` at the project root overrides the profile. **Read [docs/profiles.md](docs/profiles.md)** for what each profile turns off, how to choose, how to customise and how to move from `legacy` to `default`.
+
+Example for a legacy app (GitHub; on GitLab, put the same keys under `inputs:`):
+
+```yaml
+on: pull_request
+jobs:
+  pure:
+    uses: rockberpro/pure/.github/workflows/check.yml@main
+    with:
+      php_version: "7.4"
+      profile: legacy
+      test_version: "7.4-8.5"   # also warn about code that breaks on PHP 8
+```
+
+Then add a PHPStan baseline (see "Legacy code: start with a baseline" below) so only new errors fail.
 
 ### GitLab
 

@@ -16,6 +16,10 @@ on:
         description: PHPCompatibility testVersion, e.g. "7.4-8.5" (default "<php_version>-")
         type: string
         default: ""
+      profile:
+        description: Rule profile, "default" or "legacy" (no namespaces, snake_case methods; for PHP 5 era code)
+        type: string
+        default: default
       image:
         description: Pure image, without the tag
         type: string
@@ -35,3 +39,4 @@ jobs:
           PURE_BASE: ${{ github.base_ref && format('origin/{0}', github.base_ref) || '' }}
           PHPSTAN_LEVEL: ${{ inputs.phpstan_level }}
           PURE_TEST_VERSION: ${{ inputs.test_version }}
+          PURE_PROFILE: ${{ inputs.profile }}

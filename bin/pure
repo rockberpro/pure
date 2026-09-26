@@ -4,11 +4,16 @@
 #   PURE_FORMAT        text (default) | github (annotations) | gitlab (text log + Code Quality files in pure-reports/)
 #   PHPSTAN_LEVEL      used only when the project has no phpstan.neon (default 1)
 #   PURE_TEST_VERSION  PHPCompatibility testVersion (default "<this PHP>-", e.g. "7.4-")
+#   PURE_PROFILE       default | legacy (config/<profile>/: relaxed rules for pre-namespace code)
 set -uo pipefail
 
 format=${PURE_FORMAT:-text}
 php_version=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
 git config --global --add safe.directory "$PWD"
+
+config=/opt/pure/config
+[ "${PURE_PROFILE:-default}" != default ] && config=$config/$PURE_PROFILE
+[ -f "$config/phpcs.xml" ] || { echo "Pure: unknown profile '$PURE_PROFILE'" >&2; exit 2; }
 
 # A git failure must not look like "nothing to check" and pass the build.
 if [ -n "${PURE_BASE:-}" ]; then
@@ -63,7 +68,7 @@ sniff() {
 
 style() {
   local args=()
-  has_any phpcs.xml phpcs.xml.dist .phpcs.xml .phpcs.xml.dist || args+=(--standard=/opt/pure/config/phpcs.xml)
+  has_any phpcs.xml phpcs.xml.dist .phpcs.xml .phpcs.xml.dist || args+=(--standard="$config/phpcs.xml")
   sniff style "${args[@]}"
 }
 
