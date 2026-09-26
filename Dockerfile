@@ -14,6 +14,7 @@ RUN composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffe
       "phpmd/phpmd:^2" \
       "php-parallel-lint/php-parallel-lint:^1" \
       "staabm/annotate-pull-request-from-checkstyle:^1" \
+      "micheh/phpcs-gitlab:^2" \
       dealerdirect/phpcodesniffer-composer-installer \
       "phpcompatibility/php-compatibility:^9.3 || ^10.0@alpha" \
  && composer clear-cache

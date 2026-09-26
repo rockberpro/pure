@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pure: runs the company PHP checks and prints a summary report.
 #   PURE_BASE          git ref to diff against (the PR base); unset = all tracked PHP files
-#   PURE_FORMAT        text (default) | github
+#   PURE_FORMAT        text (default) | github (annotations) | gitlab (text log + Code Quality files in pure-reports/)
 #   PHPSTAN_LEVEL      used only when the project has no phpstan.neon (default 1)
 #   PURE_TEST_VERSION  PHPCompatibility testVersion (default "<this PHP>-", e.g. "7.4-")
 set -uo pipefail
@@ -23,6 +23,9 @@ if [ -z "$list" ]; then
 fi
 mapfile -t files <<<"$list"
 
+reports=pure-reports
+if [ "$format" = gitlab ]; then rm -rf "$reports" && mkdir "$reports"; fi
+
 has_any() { for f; do [ -f "$f" ] && return 0; done; return 1; }
 
 if [ -f composer.json ] && [ ! -d vendor ]; then
@@ -31,8 +34,11 @@ if [ -f composer.json ] && [ ! -d vendor ]; then
 fi
 
 lint() {
-  if [ "$format" = github ]; then parallel-lint --checkstyle "${files[@]}" | cs2pr
-  else parallel-lint "${files[@]}"; fi
+  case $format in
+    github) parallel-lint --checkstyle "${files[@]}" | cs2pr ;;
+    gitlab) parallel-lint --gitlab "${files[@]}" >"$reports/syntax.json"; parallel-lint "${files[@]}" ;;
+    *) parallel-lint "${files[@]}" ;;
+  esac
 }
 
 analyse() {
@@ -40,26 +46,34 @@ analyse() {
   [ "$format" = github ] && args+=(--error-format=github)
   has_any phpstan.neon phpstan.neon.dist phpstan.dist.neon ||
     args+=(-c /opt/pure/config/phpstan.neon --level="${PHPSTAN_LEVEL:-1}")
+  # gitlab: the second run (for the log) is served from PHPStan's result cache.
+  [ "$format" = gitlab ] && phpstan "${args[@]}" --error-format=gitlab "${files[@]}" >"$reports/phpstan.json"
   phpstan "${args[@]}" "${files[@]}"
 }
 
+# sniff <report name> <phpcs args...>
 sniff() {
-  if [ "$format" = github ]; then phpcs -q --report=checkstyle "$@" "${files[@]}" | cs2pr
-  else phpcs -q "$@" "${files[@]}"; fi
+  local name=$1; shift
+  case $format in
+    github) phpcs -q --report=checkstyle "$@" "${files[@]}" | cs2pr ;;
+    gitlab) phpcs -q --basepath=. --report=full --report-\\Micheh\\PhpCodeSniffer\\Report\\Gitlab="$reports/$name.json" "$@" "${files[@]}" ;;
+    *) phpcs -q "$@" "${files[@]}" ;;
+  esac
 }
 
 style() {
   local args=()
   has_any phpcs.xml phpcs.xml.dist .phpcs.xml .phpcs.xml.dist || args+=(--standard=/opt/pure/config/phpcs.xml)
-  sniff "${args[@]}"
+  sniff style "${args[@]}"
 }
 
-compat() { sniff --standard=PHPCompatibility --runtime-set testVersion "${PURE_TEST_VERSION:-$php_version-}"; }
+compat() { sniff compat --standard=PHPCompatibility --runtime-set testVersion "${PURE_TEST_VERSION:-$php_version-}"; }
 
 mess() {
-  local renderer=text
+  local renderer=text extra=()
   [ "$format" = github ] && renderer=github
-  phpmd "$(IFS=,; echo "${files[*]}")" "$renderer" codesize,unusedcode
+  [ "$format" = gitlab ] && extra=(--reportfile-gitlab "$reports/phpmd.json")
+  phpmd "$(IFS=,; echo "${files[*]}")" "$renderer" codesize,unusedcode "${extra[@]}"
 }
 
 audit() { composer audit --no-interaction; }

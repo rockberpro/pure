@@ -1,0 +1,48 @@
+# GitLab template: projects include this to run the Pure checks on their merge requests.
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/rockberpro/pure/main/gitlab/pure.yml
+#       inputs:
+#         php_version: "7.4"
+spec:
+  inputs:
+    php_version:
+      description: PHP version the project runs on (picks the image, so it decides what the syntax check accepts)
+      default: "8.5"
+    phpstan_level:
+      description: PHPStan level, used only when the project has no phpstan.neon
+      default: "1"
+    test_version:
+      description: PHPCompatibility testVersion, e.g. "7.4-8.5" (default "<php_version>-")
+      default: ""
+    stage:
+      description: Stage to run in; it must exist in the project's stages
+      default: test
+    image:
+      description: Pure image, without the tag
+      default: ghcr.io/rockberpro/pure
+---
+pure:
+  stage: $[[ inputs.stage ]]
+  image: $[[ inputs.image ]]:$[[ inputs.php_version ]]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0
+    PURE_FORMAT: gitlab
+    PURE_BASE: origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    PHPSTAN_LEVEL: $[[ inputs.phpstan_level ]]
+    PURE_TEST_VERSION: $[[ inputs.test_version ]]
+  script:
+    # The runner only fetches the MR branch; the target is needed for the diff.
+    - git fetch -q origin "+refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME:refs/remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - pure
+  artifacts:
+    when: always
+    reports:
+      codequality:
+        - pure-reports/syntax.json
+        - pure-reports/phpstan.json
+        - pure-reports/style.json
+        - pure-reports/compat.json
+        - pure-reports/phpmd.json
