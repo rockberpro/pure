@@ -1,7 +1,7 @@
 # GitLab template: projects include this to run the Pure checks on their merge requests.
 #
 #   include:
-#     - remote: https://raw.githubusercontent.com/rockberpro/pure/main/gitlab/pure.yml
+#     - remote: https://raw.githubusercontent.com/rockberpro/pure/v1/gitlab/pure.yml
 #       inputs:
 #         php_version: "7.4"
 spec:
@@ -28,7 +28,8 @@ spec:
 ---
 pure:
   stage: $[[ inputs.stage ]]
-  image: $[[ inputs.image ]]:$[[ inputs.php_version ]]
+  # "1-": images from v1.x.y releases. Change it together with a new major version.
+  image: $[[ inputs.image ]]:1-$[[ inputs.php_version ]]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:

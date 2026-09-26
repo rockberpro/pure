@@ -28,7 +28,8 @@ on:
 jobs:
   pure:
     runs-on: ubuntu-latest
-    container: ${{ inputs.image }}:${{ inputs.php_version }}
+    # "1-": images from v1.x.y releases. Change it together with a new major version.
+    container: ${{ inputs.image }}:1-${{ inputs.php_version }}
     steps:
       - uses: actions/checkout@v5
         with:

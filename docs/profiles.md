@@ -31,8 +31,8 @@ So choosing `legacy` **never makes a failing pull request pass**. If the pull re
 If you're not sure, run both locally and compare the number of warnings:
 
 ```bash
-docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:7.4
-docker run --rm -v "$PWD:/app" -e PURE_PROFILE=legacy ghcr.io/rockberpro/pure:7.4
+docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:1-7.4
+docker run --rm -v "$PWD:/app" -e PURE_PROFILE=legacy ghcr.io/rockberpro/pure:1-7.4
 ```
 
 If `default` reports "Each class must be in a namespace of at least one level" or "Method name … is not in camel caps format" on almost every file, use `legacy`.

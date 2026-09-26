@@ -1,6 +1,6 @@
 # PHP versions
 
-Pure has one image per PHP version: `ghcr.io/rockberpro/pure:<version>`. The project picks its version with two inputs, and they answer different questions:
+Pure has one image per PHP version: `ghcr.io/rockberpro/pure:1-<version>` for the v1 release line (see [Versioning](../README.md#versioning)). The project picks its version with two inputs, and they answer different questions:
 
 | Input | Question it answers | Example |
 |---|---|---|
@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ["7.4", "8.4"]
-    uses: rockberpro/pure/.github/workflows/check.yml@main
+    uses: rockberpro/pure/.github/workflows/check.yml@v1
     with:
       php_version: ${{ matrix.php }}
       test_version: "7.4-8.4"
@@ -77,8 +77,8 @@ On GitLab, including the template twice doesn't work yet, because both copies cr
 Use the same tag as CI, or you'll get different results:
 
 ```bash
-docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:7.4                            # like php_version: "7.4"
-docker run --rm -v "$PWD:/app" -e PURE_TEST_VERSION=7.4-8.4 ghcr.io/rockberpro/pure:7.4
+docker run --rm -v "$PWD:/app" ghcr.io/rockberpro/pure:1-7.4                            # like php_version: "7.4"
+docker run --rm -v "$PWD:/app" -e PURE_TEST_VERSION=7.4-8.4 ghcr.io/rockberpro/pure:1-7.4
 ```
 
 Your laptop's PHP doesn't matter. Everything runs inside the image.
@@ -88,7 +88,7 @@ Your laptop's PHP doesn't matter. Everything runs inside the image.
 When a new PHP version is released (for example 8.6) and the official `php:8.6-cli-alpine` image exists:
 
 1. Add `"8.6"` to the `php` matrix in `.github/workflows/image.yml`.
-2. Merge into `main`. The image is built and pushed as `:8.6`.
+2. Merge into `main` (this builds the edge image `:8.6`), then tag a minor release. The release builds `:1.x.0-8.6` and `:1-8.6`, which `@v1` users get.
 3. Optionally move the default `php_version` in `.github/workflows/check.yml` and `gitlab/pure.yml`, and the newest version used in `tests/run.sh` and `self-test.yml`, to the new version.
 4. Update the "Available versions" list in this file.
 

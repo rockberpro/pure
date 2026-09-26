@@ -60,7 +60,7 @@ analyse() {
 sniff() {
   local name=$1; shift
   case $format in
-    github) phpcs -q --report=checkstyle "$@" "${files[@]}" | cs2pr ;;
+    github) phpcs -q --report=checkstyle "$@" "${files[@]}" | cs2pr --errors-as-warnings ;;
     gitlab) phpcs -q --basepath=. --report=full --report-\\Micheh\\PhpCodeSniffer\\Report\\Gitlab="$reports/$name.json" "$@" "${files[@]}" ;;
     *) phpcs -q "$@" "${files[@]}" ;;
   esac
